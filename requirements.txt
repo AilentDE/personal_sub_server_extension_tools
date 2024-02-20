@@ -1,0 +1,11 @@
+APScheduler==3.10.4
+fastapi
+uvicorn
+pydantic_settings
+python-multipart
+pandas==2.2.0
+pymssql==2.2.11
+SQLAlchemy==2.0.27
+requests==2.31.0
+openpyxl==3.1.2
+boto3==1.34.45
