@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from model.WorkModels import Work
 import pandas as pd
-from datetime import timedelta
+from datetime import datetime, timedelta
 import tempfile
 
 router = APIRouter(
@@ -27,7 +27,7 @@ async def get_recomended_work_list():
         # excel
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
             data.to_excel(temp_file.name, index=False)
-    return FileResponse(path=temp_file.name, filename='recommended_work_list.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    return FileResponse(path=temp_file.name, filename=f'recommended_work_list_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @router.post('/recomendedList')
 async def set_recomended_work_list(db: Annotated[Session, Depends(get_db)], file: UploadFile):
