@@ -31,6 +31,14 @@ class UserData(Base):
     creditNo = Column(String(4), nullable=True)
     updateTime = Column(DateTime, nullable=True)
 
+class CreatorType(Base):
+    __tablename__ = "CreatorType"
+
+    creatorID = Column(String(255), primary_key=True, nullable=False)
+    typeID = Column(String(15), primary_key=True, nullable=False)
+    updateTime = Column(DateTime, nullable=True)
+    sort = Column(Integer, nullable=True)
+
 class UserCashRecord(Base):
     __tablename__ = 'UserCashRecord'
     rowID = Column(String(255), primary_key=True, nullable=False)

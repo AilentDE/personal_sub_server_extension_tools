@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 # from fastapi.middleware.cors import CORSMiddleware
-from route import work
+from route import work, user
 
 app = FastAPI(
     title='Clusters extension tools',
@@ -19,6 +19,7 @@ app = FastAPI(
 # )
 
 app.include_router(work.router)
+app.include_router(user.router)
 
 @app.get("/")
 def read_root():
