@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     aws_bucket_name:str = os.getenv('AWS_BUCKET_NAME')
     mssql_url:str = os.getenv('MSSQL_URL')
     teams_channel_url:str = os.getenv('TEAMS_CHANNEL_URL')
+    api_uri:str = os.getenv('API_URI')
+    api_account:str = os.getenv('API_ACCOUNT')
+    api_password:str = os.getenv('API_PASSWORD')
 
     model_config = SettingsConfigDict(env_file=".env")
 

@@ -4,7 +4,7 @@ from route import work, user
 
 app = FastAPI(
     title='Clusters extension tools',
-    version='0.0.1',
+    version='0.0.2',
     description='針對管理群編寫的擴充工具，基於安全請勿於本地以外的環境部屬。',
     docs_url='/tools'
 )
@@ -21,8 +21,11 @@ app = FastAPI(
 app.include_router(work.router)
 app.include_router(user.router)
 
+from job.receivable import report_receivable
+
 @app.get("/")
 def read_root():
+    # report_receivable('lucselene')
     return {"Hello": "World"}
 
 # uvicorn main:app --reload
