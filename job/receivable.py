@@ -7,11 +7,12 @@ from datetime import datetime, date, timedelta
 import json
 import tempfile
 import requests
+from util.teams import send_message
 
 with open('./job/specialUsers.json', 'r', encoding='utf-8') as file:
     special_users = json.load(file)
 
-def report_receivable(user_set_name:str):
+def report_receivable(user_set_name:str, force_target_datetime:datetime|None = None):
     match user_set_name:
         case 'lucselene':
             target_date = date.today() - timedelta(days=30)
@@ -19,8 +20,9 @@ def report_receivable(user_set_name:str):
         case 'proxima':
             target_date = date.today()
             target_datetime = datetime(target_date.year, target_date.month, 12)-timedelta(hours=8)+timedelta(minutes=10) #漢龍有1天誤差+結算作業時差
-    
-    print(target_datetime.isoformat())
+    if force_target_datetime:
+        target_datetime = force_target_datetime
+    print('Report Receivable', user_set_name, target_datetime.isoformat()+'Z')
     user_set = special_users[user_set_name]
     stmt = select(
         UserCashRecord.rowID.label('id'),
@@ -44,6 +46,7 @@ def report_receivable(user_set_name:str):
     # data
     with engine.connect() as conn:
         df = pd.read_sql_query(stmt, conn)
+        print(df)
         temp_file = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
         df.to_excel(temp_file.name, index=False)
     # requests
@@ -58,7 +61,7 @@ def report_receivable(user_set_name:str):
         )
     access_token = r.json()['accessToken']
     ## post excel
-    with open('./download_1710186107.xlsx', 'rb') as fp:
+    with open(temp_file.name, 'rb') as fp:
         r = requests.post(
             settings.api_uri+'/api/Admins/receivables/upload_transfer_results',
             headers={"X-XSRF-TOKEN": csrf_token, "Authorization": f"Bearer {access_token}"},
@@ -68,3 +71,11 @@ def report_receivable(user_set_name:str):
         print(f'[{datetime.now().isoformat()}Z] 提交金流回報成功')
     else:
         print(f'[{datetime.now().isoformat()}Z] 提交金流回報失敗')
+    # teams
+    message = [
+        {
+            "type": "TextBlock",
+            "text": f"已回報 {user_set_name} {target_datetime.month} 月份應付帳款明細"
+        }
+    ]
+    r = send_message(message)
