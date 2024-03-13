@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     api_uri:str = os.getenv('API_URI')
     api_account:str = os.getenv('API_ACCOUNT')
     api_password:str = os.getenv('API_PASSWORD')
+    teams_week_report:str = os.getenv('TEAMS_WEEK_REPORT')
 
     model_config = SettingsConfigDict(env_file=".env")
 

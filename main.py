@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from job import report_receivable, account_payable
+from job import report_receivable, account_payable, week_report
 from route import work, user
 from datetime import datetime
 
@@ -44,6 +44,7 @@ app.include_router(user.router)
 def read_root():
     # report_receivable('proxima', datetime(2024, 2, 11, 16, 10, 0))
     # account_payable()
+    week_report()
     return {"Hello": "World"}
 
 # uvicorn main:app --reload
