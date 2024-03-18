@@ -6,6 +6,8 @@ services:
     image: fast_base
     container_name: clusters-ex-tools
     restart: unless-stopped
+    environment:
+      - TZ=Asia/Taipei
     ports:
       - 8000:8000
     volumes:
