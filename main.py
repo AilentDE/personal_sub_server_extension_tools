@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from job import report_receivable, account_payable, week_report
-from route import work, user
+from route import work, user, report
 from datetime import datetime
 
 @asynccontextmanager
@@ -39,6 +39,7 @@ app = FastAPI(
 
 app.include_router(work.router)
 app.include_router(user.router)
+app.include_router(report.router)
 
 
 @app.get("/")
