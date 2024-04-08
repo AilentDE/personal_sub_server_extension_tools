@@ -13,7 +13,13 @@ router = APIRouter(
 )
 
 @router.get("/userData")
-async def get_user_data(creator_types:list[str]= Query(default=['illustration', 'comic', 'cosplay', 'sound', 'game', 'model', 'other', 'none'], description='options of illustration, comic, cosplay, sound, game, model, other or **none** .')):
+async def get_user_data(
+    creator_types: list[str]= Query(default=['illustration', 'comic', 'cosplay', 'sound', 'game', 'model', 'other', 'none'],
+                                   description='options of illustration, comic, cosplay, sound, game, model, other or **none** .'),
+    created_from: datetime|None = Query(default=None,
+                                        description='YYYY-MM-DDTHH:mm:ssZ \(UTC+0\)'),
+    created_until: datetime|None = Query(default=None,
+                                         description='YYYY-MM-DDTHH:mm:ssZ \(UTC+0\)')):
     print(creator_types)
     stmt = select(
         UserData.userID,
@@ -26,6 +32,10 @@ async def get_user_data(creator_types:list[str]= Query(default=['illustration', 
         stmt = stmt.where(CreatorType.typeID.in_(creator_types))
     elif creator_types == ['none']:
         stmt = stmt.where(CreatorType.typeID==None)
+    if created_from:
+        stmt = stmt.where(UserData.createdAt > created_from)
+    if created_until:
+        stmt = stmt.where(UserData.createdAt <= created_until)
     stmt = stmt.group_by(UserData.userID, UserData.displayName, UserData.email, UserData.createdAt).order_by(UserData.createdAt.asc())
     # data
     with engine.connect() as conn:
