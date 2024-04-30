@@ -20,10 +20,12 @@ def report_receivable(user_set_name:str, force_target_datetime:datetime|None = N
         case 'proxima':
             target_date = date.today()
             target_datetime = datetime(target_date.year, target_date.month, 12)-timedelta(hours=8)+timedelta(minutes=10) #漢龍有1天誤差+結算作業時差
+        case 'normal':
+            target_date = date.today()
+            target_datetime = datetime(target_date.year, target_date.month, 12)-timedelta(hours=8)+timedelta(minutes=10) #漢龍有1天誤差+結算作業時差
     if force_target_datetime:
         target_datetime = force_target_datetime
     print('Report Receivable', user_set_name, target_datetime.isoformat()+'Z')
-    user_set = special_users[user_set_name]
     stmt = select(
         UserCashRecord.rowID.label('id'),
         UserCashRecord.userID.label('userId'),
@@ -38,11 +40,14 @@ def report_receivable(user_set_name:str, force_target_datetime:datetime|None = N
     ).where(
         UserCashRecord.cashType.in_(['withdraw', 'auto-withdraw']),
         UserCashRecord.status == 'pending',
-        UserCashRecord.userID.in_(user_set.keys()),
         UserCashRecord.createTime < target_datetime
-    ).order_by(
-        UserCashRecord.createTime.asc()
     )
+    if user_set_name == 'normal':
+        user_set = {**special_users['lucselene'], **special_users['proxima']}
+        stmt = stmt.where(UserCashRecord.userID.notin_(user_set.keys()))
+    else:
+        user_set = special_users[user_set_name]
+        stmt = stmt.where(UserCashRecord.userID.in_(user_set.keys()))
     # data
     with engine.connect() as conn:
         df = pd.read_sql_query(stmt, conn)

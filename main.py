@@ -12,6 +12,7 @@ async def lifespan(app: FastAPI):
     scheduler = AsyncIOScheduler()
     scheduler.add_job(week_report, CronTrigger(day_of_week='mon', hour=10, minute=0, second=0)) #週報
     scheduler.add_job(account_payable, CronTrigger(day=12, hour=12, minute=0, second=0)) #結算名單
+    scheduler.add_job(report_receivable, CronTrigger(day='25', hour=12, minute=0, second=0), args=['normal']) #回報normal名單
     scheduler.add_job(report_receivable, CronTrigger(day='Last', hour=12, minute=0, second=0), args=['proxima']) #回報proxima名單
     scheduler.add_job(report_receivable, CronTrigger(day=10, hour=12, minute=0, second=0), args=['lucselene']) #回報lucselene名單
     print('scheduler start ...')
