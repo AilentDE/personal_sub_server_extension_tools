@@ -1,15 +1,13 @@
 version: '3'
 
 services:
-  fast-api:
+  clusters-ex-api:
     build: .
-    image: fast_base
+    image: clusters-ex-tools
     container_name: clusters-ex-tools
     restart: unless-stopped
     environment:
       - TZ=Asia/Taipei
     ports:
       - 8000:8000
-    volumes:
-      - .:/app
     command: "uvicorn main:app --host 0.0.0.0 --port 8000"
