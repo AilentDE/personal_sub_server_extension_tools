@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Query, Path, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from typing import Annotated
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, insert
 from sqlalchemy.orm import Session, aliased
 from model.UserModels import UserData, CreatorType
 from model.SubscriptionModels import UserSubscription
+from model.TierModels import Tier
 from config.database import engine, get_db
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 from dateutil.relativedelta import relativedelta
 import tempfile
+from collections import namedtuple
 
 router = APIRouter(
     prefix='/user',
@@ -147,22 +149,112 @@ async def show_user_subscribe(db: Annotated[Session, Depends(get_db)],
             data.to_excel(temp_file.name, index=False)
     return FileResponse(path=temp_file.name, filename=f'user_subscribe_creator_{datetime.now().strftime("%Y%m%d%H%M%S")}.xlsx', media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-# @router.delete("/subscribe")
-# async def cancel_user_subscribe(db: Annotated[Session, Depends(get_db)],
-#                                 user_id: str = Query(description='欲退訂的使用者ID'),
-#                                 tier_id: str = Query(description='欲退訂的方案ID')):
-#     stmt = select(
-#         UserSubscription
-#     ).where(
-#         UserSubscription.userID == user_id,
-#         UserSubscription.tierID == tier_id,
-#         UserSubscription.subscription_Year == (datetime.now(timezone.utc)+timedelta(hours=8)+relativedelta(months=1)).strftime('%Y'),
-#         UserSubscription.subscription_Month == (datetime.now(timezone.utc)+timedelta(hours=8)+relativedelta(months=1)).strftime('%m')
-#     )
-#     result = db.execute(stmt)
-#     sub = result.scalar_one_or_none()
-#     if sub:
-#         print(sub)
-#         return {'ok': True}
-#     else:
-#         return {'ok': False}
+@router.delete("/subscribe/next")
+async def cancel_user_subscribe(db: Annotated[Session, Depends(get_db)],
+                                user_id: str = Query(description='欲退訂的使用者ID'),
+                                tier_id: str = Query(description='欲退訂的方案ID')):
+    now_datetime = datetime.now(timezone.utc)+timedelta(hours=8)
+    date_data = namedtuple("DateData", ["this_year", "this_month", "next_year", "next_month"])(
+        now_datetime.strftime('%Y'),
+        now_datetime.strftime('%m'),
+        (now_datetime+relativedelta(months=1)).strftime('%Y'),
+        (now_datetime+relativedelta(months=1)).strftime('%m'),
+    )
+    print(user_id, tier_id, date_data)
+    stmt = select(
+        UserSubscription
+    ).where(
+        UserSubscription.userID == user_id,
+        UserSubscription.tierID == tier_id,
+        UserSubscription.subscription_Year == date_data.next_year,
+        UserSubscription.subscription_Month == date_data.next_month
+    )
+    result = db.execute(stmt)
+    sub = result.scalar_one_or_none()
+    if sub is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Can't find this subscription data.")
+    # 僅需要取消續訂
+    if sub.isAddon is True or sub.price == 0:
+        stmt = delete(
+            UserSubscription
+        ).where(
+            UserSubscription.userID == user_id,
+            UserSubscription.tierID == tier_id,
+            UserSubscription.subscription_Year == date_data.next_year,
+            UserSubscription.subscription_Month == date_data.next_month
+        )
+        result = db.execute(stmt)
+        db.commit()
+        if sub.isAddon:
+            print("取消訂閱進階方案")
+        else:
+            print("取消訂閱0元方案")
+        return {"message": "Delete month subscription successfully", "detail": {"user_id": user_id, "tier_id": tier_id, "subscription": {**sub.__dict__}}}
+    else:
+    # 刪除本月訂閱
+        stmt_this = delete(
+            UserSubscription
+        ).where(
+            UserSubscription.userID == user_id,
+            UserSubscription.tierID == tier_id,
+            UserSubscription.subscription_Year == date_data.this_year,
+            UserSubscription.subscription_Month == date_data.this_month
+        )
+        result = db.execute(stmt_this)
+        print("刪除本月標準訂閱")
+        # 刪除次月訂閱(避免跨年錯誤分兩段)
+        stmt_next = delete(
+            UserSubscription
+        ).where(
+            UserSubscription.userID == user_id,
+            UserSubscription.tierID == tier_id,
+            UserSubscription.subscription_Year == date_data.next_year,
+            UserSubscription.subscription_Month == date_data.next_month
+        )
+        result = db.execute(stmt_next)
+        print("刪除次月標準訂閱")
+        db.commit()
+
+        # 查找0元
+        stmt = select(
+            Tier
+        ).where(
+            Tier.creatorID == sub.creatorID,
+            Tier.price == 0
+        )
+        result = db.execute(stmt)
+        tier_free = result.scalar_one_or_none()
+        if tier_free is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Can't find this subscription data.")
+        # 回訂0元
+        stmt = insert(UserSubscription).values(
+            userID=user_id,
+            creatorID=tier_free.creatorID,
+            tierID=tier_free.tierID,
+            subscription_Year=date_data.this_year,
+            subscription_Month=date_data.this_month,
+            createTime=datetime.now(tz=timezone.utc),
+            price=tier_free.price,
+            IsPay=True,
+            isAddon=tier_free.isAddon,
+            isRenew=False
+        )
+        result = db.execute(stmt)
+        # 續訂0元
+        stmt = insert(UserSubscription).values(
+            userID=user_id,
+            creatorID=tier_free.creatorID,
+            tierID=tier_free.tierID,
+            subscription_Year=date_data.next_year,
+            subscription_Month=date_data.next_month,
+            createTime=datetime.now(tz=timezone.utc),
+            price=tier_free.price,
+            IsPay=False,
+            isAddon=tier_free.isAddon,
+            isRenew=True
+        )
+        result = db.execute(stmt)
+        db.commit()
+        print("回訂0元方案")
+        
+        return {"message": "Next month subscription delete successfully", "detail": {"user_id": user_id, "tier_id": tier_id}}
