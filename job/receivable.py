@@ -56,7 +56,7 @@ def report_receivable(user_set_name:str, force_target_datetime:datetime|None = N
         df.to_excel(temp_file.name, index=False)
     # requests
     ## csrf
-    r = requests.post(settings.api_uri+'/api/Admin/csrf_token')# 路徑之後會更新成.../Admins/...
+    r = requests.post(settings.api_uri+'/api/Admins/csrf_token')
     csrf_token = r.json()['csrfToken']
     ## login
     r = requests.post(
