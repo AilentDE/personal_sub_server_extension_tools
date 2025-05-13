@@ -53,7 +53,8 @@ def week_report(force_datetime:datetime|None = None):
         ### 當月權力表
         stmt = select(UserSubscriptionPurview).where(
             UserSubscriptionPurview.subscription_Year == this_year,
-            UserSubscriptionPurview.subscription_Month == this_month
+            UserSubscriptionPurview.subscription_Month == this_month,
+            UserSubscriptionPurview.price != 0
         ).order_by(
             UserSubscriptionPurview.userID,
             UserSubscriptionPurview.creatorID,
@@ -66,7 +67,8 @@ def week_report(force_datetime:datetime|None = None):
         ### 前月權力表
         stmt = select(UserSubscriptionPurview).where(
             UserSubscriptionPurview.subscription_Year == past_year,
-            UserSubscriptionPurview.subscription_Month == past_month
+            UserSubscriptionPurview.subscription_Month == past_month,
+            UserSubscriptionPurview.price != 0
         ).order_by(
             UserSubscriptionPurview.userID,
             UserSubscriptionPurview.creatorID,
