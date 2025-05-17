@@ -6,8 +6,11 @@ import pandas as pd
 from datetime import datetime, date, timedelta
 import json
 import tempfile
-import requests
+import os
+from requests import Session
 from util.teams import send_message
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 
 with open('./job/specialUsers.json', 'r', encoding='utf-8') as file:
     special_users = json.load(file)
@@ -51,36 +54,50 @@ def report_receivable(user_set_name:str, force_target_datetime:datetime|None = N
     # data
     with engine.connect() as conn:
         df = pd.read_sql_query(stmt, conn)
-        print(df)
         temp_file = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
         df.to_excel(temp_file.name, index=False)
+
     # requests
+    retry_policy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[400, 429, 500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry_policy)
+    session = Session()
+    session.mount('https://', adapter)
     ## csrf
-    r = requests.post(settings.api_uri+'/api/Admins/csrf_token')
+    r = session.post(settings.api_uri+'/api/Admins/csrf_token')
     csrf_token = r.json()['csrfToken']
     ## login
-    r = requests.post(
+    r = session.post(
         settings.api_uri+'/api/Admins/Login',
         headers={"X-XSRF-TOKEN": csrf_token},
         json={"account": settings.api_account, "password": settings.api_password}
-        )
+    )
     access_token = r.json()['accessToken']
     ## post excel
     with open(temp_file.name, 'rb') as fp:
-        r = requests.post(
+        r = session.post(
             settings.api_uri+'/api/Admins/receivables/upload_transfer_results',
             headers={"X-XSRF-TOKEN": csrf_token, "Authorization": f"Bearer {access_token}"},
             files={'excelFile': fp}
         )
+    message = []
     if r.status_code == 200:
         print(f'[{datetime.now().isoformat()}Z] 提交金流回報成功')
-    else:
-        print(f'[{datetime.now().isoformat()}Z] 提交金流回報失敗')
-    # teams
-    message = [
-        {
+        message.append({
             "type": "TextBlock",
             "text": f"已回報 {user_set_name} {target_datetime.month} 月份應付帳款明細"
-        }
-    ]
-    r = send_message(message)
+        })
+    else:
+        print(f'[{datetime.now().isoformat()}Z] 提交金流回報失敗: {r.status_code} {r.text}')
+        message.append({
+            "type": "TextBlock",
+            "text": f"提交金流回報失敗: {r.status_code} {r.text}"
+        })
+    # teams
+    _ = send_message(message)
+    # clear
+    os.remove(temp_file.name)
+    session.close()

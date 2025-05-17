@@ -1,4 +1,6 @@
-import requests
+from requests import Session
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from config.setting import settings
 
 def send_message(messages=[{"type": "TextBlock",'text': '**content.**'}], actions=None, mention=None, token=settings.teams_channel_url):
@@ -49,5 +51,14 @@ def send_message(messages=[{"type": "TextBlock",'text': '**content.**'}], action
                         }
                     }
                 ]
-    r = requests.post(url, headers=headers, json=data, timeout=30)
+    
+    retry_policy = Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[400, 429, 500, 502, 503, 504]
+    )
+    adapter = HTTPAdapter(max_retries=retry_policy)
+    with Session() as session:
+        session.mount('https://', adapter)
+        r = session.post(url, headers=headers, json=data, timeout=30)
     return r
