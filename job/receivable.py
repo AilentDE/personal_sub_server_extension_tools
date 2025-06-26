@@ -11,10 +11,12 @@ from requests import Session
 from util.teams import send_message
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from util.retry_policy import retry_policy
 
 with open('./job/specialUsers.json', 'r', encoding='utf-8') as file:
     special_users = json.load(file)
 
+@retry_policy
 def report_receivable(user_set_name:str, force_target_datetime:datetime|None = None):
     match user_set_name:
         case 'lucselene':

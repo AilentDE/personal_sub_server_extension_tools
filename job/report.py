@@ -10,7 +10,9 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select, func
 import pandas as pd
+from util.retry_policy import retry_policy
 
+@retry_policy
 def week_report(force_datetime:datetime|None = None):
     
     # 設定變數

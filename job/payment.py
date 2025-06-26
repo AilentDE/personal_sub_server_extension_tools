@@ -7,8 +7,10 @@ import pandas as pd
 from util.teams import send_message
 import tempfile
 from datetime import date, timedelta
+from util.retry_policy import retry_policy
 
 
+@retry_policy
 def account_payable():
     stmt = (
         select(
