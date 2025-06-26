@@ -1,8 +1,19 @@
-from sqlalchemy import Column, Integer, SmallInteger, String, DateTime, Date, Boolean, Text, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    SmallInteger,
+    String,
+    DateTime,
+    Date,
+    Boolean,
+    Text,
+    ForeignKey,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()
+
 
 class UserData(Base):
     __tablename__ = "UserData"
@@ -31,6 +42,7 @@ class UserData(Base):
     creditNo = Column(String(4), nullable=True)
     updateTime = Column(DateTime, nullable=True)
 
+
 class CreatorType(Base):
     __tablename__ = "CreatorType"
 
@@ -39,10 +51,11 @@ class CreatorType(Base):
     updateTime = Column(DateTime, nullable=True)
     sort = Column(Integer, nullable=True)
 
+
 class UserCashRecord(Base):
-    __tablename__ = 'UserCashRecord'
+    __tablename__ = "UserCashRecord"
     rowID = Column(String(255), primary_key=True, nullable=False)
-    userID = Column(String(255), ForeignKey('UserRealData.userID'), nullable=False)
+    userID = Column(String(255), ForeignKey("UserRealData.userID"), nullable=False)
     cashType = Column(String(50), nullable=True)
     orderFee = Column(Integer, nullable=True)
     platformFee = Column(Integer, nullable=True)
@@ -54,10 +67,11 @@ class UserCashRecord(Base):
     isDelete = Column(Boolean, nullable=True)
     memo = Column(Text, nullable=True)
 
-    user_real_data = relationship('UserRealData', back_populates='cash_records')
+    user_real_data = relationship("UserRealData", back_populates="cash_records")
+
 
 class UserRealData(Base):
-    __tablename__ = 'UserRealData'
+    __tablename__ = "UserRealData"
     userID = Column(String(255), primary_key=True, nullable=False)
     userRealName = Column(String(10), nullable=True)
     bankName = Column(String(50), nullable=True)
@@ -74,5 +88,10 @@ class UserRealData(Base):
     identityNumber = Column(String(20), nullable=True)
     createTime = Column(DateTime, nullable=True)
     updateTime = Column(DateTime, nullable=True)
+    swiftCode = Column(String(11), nullable=True)
+    identityType = Column(String(20), nullable=True)
+    passportAssetId = Column(String(255), nullable=True)
+    identityDocumentAssetId = Column(String(255), nullable=True)
+    identityDocument2AssetId = Column(String(255), nullable=True)
 
-    cash_records = relationship('UserCashRecord', back_populates='user_real_data')
+    cash_records = relationship("UserCashRecord", back_populates="user_real_data")
