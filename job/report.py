@@ -14,15 +14,24 @@ from util.retry_policy import retry_policy
 
 @retry_policy
 def week_report(force_datetime:datetime|None = None):
-    
-    # 設定變數
-    if not force_datetime:
-        target_datetime = datetime.now()
+    target_datetime = force_datetime or datetime.now()
+    with SessionLocal() as job_db:
+        report_message = _build_week_report_message(job_db, target_datetime)
+
+    message = [
+        {
+        "type": "TextBlock",
+        "text": report_message
+        }
+    ]
+    send_message(message, token=settings.teams_week_report)
+
+
+def _build_week_report_message(job_db, target_datetime: datetime):
     this_year = target_datetime.strftime('%Y')
     this_month = target_datetime.strftime('%m')
     past_year = (target_datetime-relativedelta(months=1)).strftime('%Y')
     past_month = (target_datetime-relativedelta(months=1)).strftime('%m')
-    job_db = SessionLocal()
     message = ""
 
     # 1.週報
@@ -90,7 +99,7 @@ def week_report(force_datetime:datetime|None = None):
             UserSubscription.creatorID,
             UserSubscription.price.desc()
         )
-        df_subscription = pd.read_sql(stmt, engine)
+        df_subscription = pd.read_sql(stmt, conn)
         df_subscription_normal = df_subscription[df_subscription['isAddon'] == False].copy()
         df_subscription_addon = df_subscription[df_subscription['isAddon'] == True].copy()
     ## 當月總訂閱金額、人數
@@ -142,12 +151,4 @@ def week_report(force_datetime:datetime|None = None):
     for typeID, creatorTypeCount in results:
         message += f"- **{typeID}**: {creatorTypeCount}\r"
 
-    job_db.close()
-    # teams
-    message = [
-        {
-        "type": "TextBlock",
-        "text": message
-        }
-    ]
-    r = send_message(message, token=settings.teams_week_report)
+    return message

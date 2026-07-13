@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     api_account:str = os.getenv('API_ACCOUNT')
     api_password:str = os.getenv('API_PASSWORD')
     teams_week_report:str = os.getenv('TEAMS_WEEK_REPORT')
+    db_pool_recycle_seconds:int = 1800
 
     model_config = SettingsConfigDict(env_file=".env")
 
