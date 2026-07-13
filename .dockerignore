@@ -172,7 +172,9 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-# .env
+.env
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -220,6 +222,14 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+# Files that are not needed in the runtime image
+.git
+.github
+AGENTS.md
+docker-compose*.yml
+scripts/
+tests/
 
 ### VisualStudioCode ###
 .vscode/*

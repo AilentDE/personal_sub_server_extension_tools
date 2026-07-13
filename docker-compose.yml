@@ -1,13 +1,25 @@
-version: '3'
-
 services:
-  clusters-ex-api:
-    build: .
-    image: clusters-ex-tools
-    container_name: clusters-ex-tools
+  clusters-ext-api:
+    image: "${IMAGE_REF:?IMAGE_REF is required}"
+    container_name: clusters-ext-api
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - TZ=Asia/Taipei
+      TZ: Asia/Taipei
     ports:
-      - 8000:8000
+      - "8000:8000"
     command: "uvicorn main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    stop_grace_period: 30s
